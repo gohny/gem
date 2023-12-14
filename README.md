@@ -68,10 +68,10 @@ sudo pacman -Rsnu gem
 gem [-E|h|i|I]
 
 Options:
-  {-E} - Export extensions and their configs."
-  {-h} - Display this message."
-  {-i} - Soft import. Import extensions and their confings from selected backup, maintaining extensions you currently have installed."
-  {-I} - Hard import. First remove all extensions you currently have installed, then import extensions and their confings from selected backup."
+  {-E} - Export extensions and their configs.
+  {-h} - Display this message.
+  {-i} - Soft import. Import extensions and their confings from selected backup, maintaining extensions you currently have installed.
+  {-I} - Hard import. First remove all extensions you currently have installed, then import extensions and their confings from selected backup.
 ```
 ### Backups and backup files
 **Backups** are stored in your **home directory**, inside the `.gem` directory: `~/.gem/backups/` <br> <br>
