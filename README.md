@@ -16,6 +16,7 @@ cd gem
 sudo make install
 ```
 ### Install GEM with AUR
+https://aur.archlinux.org/packages/gem
 #### Using AUR helper such as `yay` or `pikaur`
 - Simply install the `gem` package using your **AUR helper**.
 - ##### `yay`:
@@ -33,7 +34,7 @@ sudo pacman -S git
 ```
 - Clone the repo from **AUR**:
 ```
-git clone
+git clone https://aur.archlinux.org/gem.git
 ```
 - Change current directory to `gem`:
 ```
