@@ -1,0 +1,202 @@
+#! /bin/bash
+GEM_VERSION=0.1.0
+USERNAME=$(whoami)
+WHEREAMI=$(pwd)
+EXT_DIR=/home/"$USERNAME"/.local/share/gnome-shell/extensions
+HOME_DIR=/home/"$USERNAME"
+BACKUP_DIR="$HOME_DIR"/.gem/backups
+BACKUP_ID=$(date +"%Y-%m-%d_%H-%M-%S")
+
+if [ ! -d "$BACKUP_DIR" ]; then
+    mkdir -p "$BACKUP_DIR"
+fi
+
+if [ ! -d "$HOME_DIR" ]; then
+    echo "Error: Gnome extension directory does not exist."
+    exit
+fi
+
+Help() {
+    echo ""
+    echo "  *********************************"
+    echo "  * GEM - Gnome Extension Manager *"
+    echo "  * v$GEM_VERSION    by Gohny            *"
+    echo "  *********************************"
+    echo ""
+    echo "Usage: gem [-E|h|i|I]"
+    echo ""
+    echo "Options:"
+    echo "   {-E} - Export extensions and their configs."
+    echo "   {-h} - Display this message."
+    echo "   {-i} - Soft import. Import extensions and their confings from selected backup, maintaining extensions you currently have installed."
+    echo "   {-I} - Hard import. First remove all extensions you currently have installed, then import extensions and their confings from selected backup."
+    echo ""
+    echo "Backup directory: ~/.gem/backups"
+    echo ""
+    echo "LICENSE: GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007"
+    echo "https://github.com/gohny/gem"
+}
+
+Info () {
+    echo ""
+    echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+    echo "INFO: Config backups may not work for some extensions (e.g. Dash to Dock) due to existence of many ways of storing extension preferences."
+    echo "GEM currently only supports configs that are stored in the .xml files."
+    echo "Support for the other types of configs will be added in the next GEM versions."
+    echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+    echo ""
+    sleep 1
+}
+
+Export() {
+    Info
+    echo ""
+    echo "exporting..."
+    sleep 1
+
+    EXPORT_DIR="$BACKUP_DIR"/"$BACKUP_ID"
+    mkdir -p "$EXPORT_DIR"/extensions
+    cd "$EXT_DIR"
+
+    NUM_EXT=$(($(ls -l | wc -l)-1))
+    NAME_EXT=(*)
+
+    for ((i = 0 ; i < $NUM_EXT ; i++)); do
+        cp -r "${NAME_EXT[$i]}" "$EXPORT_DIR"/extensions/"${NAME_EXT[$i]}"
+        rm "$EXPORT_DIR"/extensions/"${NAME_EXT[$i]}"/schemas/*.compiled
+    done
+
+    BACKUP_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+    INFO_FILE="$EXPORT_DIR"/BACKUPINFO.txt
+    touch "$INFO_FILE"
+    echo "Backup provided by GEM $GEM_VERSION by Gohny" >> "$INFO_FILE"
+    echo "https://github.com/gohny/gem" >> "$INFO_FILE"
+    echo "" >> "$INFO_FILE"
+    echo "Backup creation time: $BACKUP_TIME " >> "$INFO_FILE"
+    echo "Backup ID: $BACKUP_ID" >> "$INFO_FILE"
+
+    echo ""
+    echo "Done."
+    echo "The backup is stored in: $EXPORT_DIR"
+}
+
+ImportExt() {
+    if [ $(($(ls -l "$BACKUP_DIR" | wc -l)-1)) -lt 1 ]; then
+        echo "No extension backup found"
+    else
+        Info
+        PS3="Select backup: "
+        cd "$BACKUP_DIR"
+        BACKUPS=(*)
+        NUM_BACKUPS=$(($(ls -l | wc -l)-1))
+
+        echo "Please select the backup you want to import."
+        select ID in ${BACKUPS[*]}
+        do
+            if [ -z $ID ] ; then
+                echo "Error: This backup does not exist."
+            else
+                echo "You selected backup: $ID"
+                echo ""
+                echo "please wait..."
+                echo ""
+                sleep 3
+                break
+            fi
+        done
+
+        cd "$BACKUP_DIR"/"$ID"/extensions
+        NUM_EXT=$(($(ls -l | wc -l)-1))
+        NAME_EXT=(*)
+
+        for ((i = 0 ; i < $NUM_EXT ; i++)); do
+            rm -rf "$EXT_DIR"/"${NAME_EXT[$i]}"
+            cp -r "$BACKUP_DIR"/"$ID"/extensions/"${NAME_EXT[$i]}" "$EXT_DIR"
+            glib-compile-schemas "$EXT_DIR"/"${NAME_EXT[$i]}"/schemas
+        done
+
+        echo ""
+        echo "*********************************************************"
+        echo "* You are about to be LOGGED OUT of this gnome session. *"
+        echo "* Please SAVE all your pending work.                    *"
+        echo "*********************************************************"
+        echo ""
+
+        while true; do
+
+            read -p "Do you want to continue? (y/n) " yn
+
+            case $yn in
+                [yY] )
+                    echo ""
+                    echo "please wait..."
+                    echo ""
+                    sleep 1
+                    gnome-session-quit --logout
+                    break;;
+
+                [nN] )
+                    echo "Your backup has been imported. The changes will take efect next time you log in."
+                    exit;;
+
+                * )
+                    echo "Error: please input y or n";;
+            esac
+        done
+    fi
+}
+
+HardImport() {
+    echo ""
+    echo "*********************************************************************************"
+    echo "* Wait! This operation will remove ALL extensions you currently have installed. *"
+    echo "* This change is permanent and cannot be undone!                                *"
+    echo "*********************************************************************************"
+    echo ""
+
+    while true; do
+
+    read -p "Do you want to continue? (y/n) " yn
+
+        case $yn in
+            [yY] )
+                echo "please wait..."
+                cd $EXT_DIR
+                rm -rf *
+                ImportExt
+                break;;
+
+            [nN] )
+                echo "Operation aborted. No changes have been made."
+                exit;;
+
+            * )
+                echo "Error: please input y or n";;
+        esac
+    done
+}
+
+while getopts ":EhiI" OPTION; do
+    case $OPTION in
+        E)
+            Export
+            exit;;
+        h)
+            Help
+            exit;;
+        i)
+            ImportExt
+            exit;;
+        I)
+            HardImport
+            exit;;
+        *)
+            echo "Error: Invalid option!"
+            echo "For help use: gem -h"
+            exit;;
+    esac
+done
+
+Help
+cd "$WHEREAMI"
+exit
