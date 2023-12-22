@@ -3,7 +3,7 @@ all:
 	@echo "Uninstalling: sudo make uninstall"
 
 install:
-	@chmod 777 gem
+	@chmod 755 gem
 	@cp gem /usr/bin/gem
 	@echo "GEM has been installed"
 
